@@ -5,7 +5,10 @@ import java.util.Collections;
 import java.util.function.Consumer;
 
 import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.xml.sax.SAXException;
 
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import io.jenkins.plugins.analysis.core.model.AnalysisResult;
@@ -67,6 +70,20 @@ public class IssuesRecorderITest extends IntegrationTest {
 
         assertThat(result).hasTotalSize(8);
         assertThat(result).hasOverallResult(Result.UNSTABLE);
+
+        HtmlPage page = getWebPage(result);
+        assertThat(page.getElementsByIdAndOrName("statistics")).hasSize(1);
+    }
+
+    private HtmlPage getWebPage(final AnalysisResult result) {
+        try {
+            WebClient webClient = j.createWebClient();
+            webClient.setJavaScriptEnabled(false);
+            return webClient.getPage(result.getOwner(), "eclipseResult");
+        }
+        catch (SAXException | IOException e) {
+           throw new AssertionError(e);
+        }
     }
 
     /**
@@ -74,7 +91,7 @@ public class IssuesRecorderITest extends IntegrationTest {
      *
      * @return the created job
      */
-    private FreeStyleProject createJob() {
+    protected FreeStyleProject createJob() {
         try {
             return j.createFreeStyleProject();
         }
@@ -92,7 +109,7 @@ public class IssuesRecorderITest extends IntegrationTest {
      *
      * @return the created job
      */
-    private FreeStyleProject createJobWithWorkspaceFile(final String... fileNames) {
+    protected FreeStyleProject createJobWithWorkspaceFile(final String... fileNames) {
         FreeStyleProject job = createJob();
         copyFilesToWorkspace(job, fileNames);
         return job;
@@ -145,7 +162,7 @@ public class IssuesRecorderITest extends IntegrationTest {
      * @return the created {@link ResultAction}
      */
     @SuppressWarnings({"illegalcatch", "OverlyBroadCatchBlock"})
-    private AnalysisResult scheduleBuildAndAssertStatus(final FreeStyleProject job, final Result status) {
+    protected AnalysisResult scheduleBuildAndAssertStatus(final FreeStyleProject job, final Result status) {
         try {
             FreeStyleBuild build = j.assertBuildStatus(status, job.scheduleBuild2(0));
 
